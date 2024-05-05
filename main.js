@@ -293,7 +293,7 @@ bot.on('message', (msg) => {
         if (!dbuser.includes(userId)) {
             dbuser.push(userId);
             fs.writeFileSync(DB_patch, JSON.stringify(dbuser));
-            bot.sendMessage(6991457866, `User ${chatId} Terdaftar Di Auto Jpm`);
+            //bot.sendMessage(6991457866, `User ${chatId} Terdaftar Di Auto Jpm`);
         } else {
         
   console.log('Auto Save');

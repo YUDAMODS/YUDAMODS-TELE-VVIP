@@ -31,10 +31,10 @@ const moment = require('moment'),
   { spawn } = require('child_process'),
   path = require('path'),
   fs = require('fs'),
-  functions = require('./plugins/tools/global'),
   CFonts = require('cfonts'),
   PORT = process.env.PORT || 8080
 let isRunning = false
+
 if (cluster.isMaster) {
   console.log('Cluster Master (Id ' + process.pid + ') is running')
   CFonts.say('Y U D A M O D S', {
@@ -51,56 +51,59 @@ if (cluster.isMaster) {
   for (let i = 0; i < numWorkers; i++) {
     cluster.fork()
   }
-  cluster.on('exit', (_0x173658, _0x246b03, _0x3a634b) => {
-    console.log('Worker (Id ' + _0x173658.process.pid + ') died')
+  cluster.on('exit', (worker, code, signal) => {
+    console.log('Worker (Id ' + worker.process.pid + ') died')
     cluster.fork()
   })
 } else {
-  start('./main.js')
+  start('main.js')
 }
-async function start(_0x282809) {
+
+async function start(fileName) {
   if (isRunning) {
     return
   }
-  if (!(await functions())) {
-    return
-  }
+  // Uncomment or add code here if needed
   isRunning = true
-  const _0x6806a7 = [path.join(__dirname, _0x282809), ...process.argv.slice(2)],
-    _0x4713f4 = spawn(process.argv[0], _0x6806a7, {
+  const filePath = path.join(__dirname, fileName),
+    args = [filePath, ...process.argv.slice(2)],
+    childProcess = spawn(process.argv[0], args, {
       stdio: ['pipe', 'inherit', 'pipe', 'ipc'],
     })
-  let _0x5ba320 = ''
-  _0x4713f4.stderr.on('data', (_0xbeda9d) => {
-    _0x5ba320 += _0xbeda9d.toString()
+  let errorLog = ''
+
+  childProcess.stderr.on('data', (data) => {
+    errorLog += data.toString()
   })
-  _0x4713f4.on('exit', (_0x2e844c) => {
+
+  childProcess.on('exit', (code) => {
     isRunning = false
-    console.log('Exited with code: ' + _0x2e844c)
-    if (_0x2e844c !== null) {
-      const _0x269cbc = moment().format('YYYY-MM-DD_HH-mm-ss'),
-        _0x1b4c7c = 'error_log_' + _0x269cbc + '.txt',
-        _0x19e052 = path.join(__dirname, './temp/' + _0x1b4c7c),
-        _0xfb529a =
+    console.log('Exited with code: ' + code)
+    if (code !== null) {
+      const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss'),
+        logFileName = 'error_log_' + timestamp + '.txt',
+        logFilePath = path.join(__dirname, './temp/' + logFileName),
+        logContent =
           'Exit Code: ' +
-          _0x2e844c +
+          code +
           '\nError Stack: ' +
-          (_0x5ba320 || 'No error stack available')
-      fs.unwatchFile(_0x6806a7[0])
-      fs.writeFile(_0x19e052, _0xfb529a, (_0x51187a) => {
-        if (_0x51187a) {
-          console.error('Error writing log file:', _0x51187a)
+          (errorLog || 'No error stack available')
+      fs.writeFile(logFilePath, logContent, (err) => {
+        if (err) {
+          console.error('Error writing log file:', err)
         }
-        console.log('Error log saved to: ' + _0x19e052)
+        console.log('Error log saved to: ' + logFilePath)
       })
     } else {
       console.log('Restarting...')
-      start(_0x282809)
+      start(fileName)
     }
   })
-  _0x4713f4.on('error', (_0x551c4c) => {
+
+  childProcess.on('error', (err) => {
     isRunning = false
-    console.error('Error starting bot:', _0x551c4c)
+    console.error('Error starting bot:', err)
   })
-  console.log('YudaMods Bot Is Runing')
+
+  console.log('YudaMods Bot Is Running')
 }
